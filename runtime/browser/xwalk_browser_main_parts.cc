@@ -62,6 +62,64 @@ base::StringPiece PlatformResourceProvider(int key) {
 
 namespace xwalk {
 
+GURL GetContentLaunchURL() {
+#if !defined(OS_ANDROID)
+  CommandLine* command_line = CommandLine::ForCurrentProcess();
+  const CommandLine::StringVector& args = command_line->GetArgs();
+
+  if (args.empty())
+    return GURL();
+
+  GURL url(args[0]);
+  if (url.is_valid() && url.has_scheme()) {
+    return url;
+  } else {
+    base::FilePath path(args[0]);
+    if (!path.IsAbsolute())
+      path = MakeAbsoluteFilePath(path);
+    return url = net::FilePathToFileURL(path);
+  }
+#endif
+  return GURL();
+}
+
+void SetContentCommandLineFlags() {
+  static bool already_initialized = false;
+  if (already_initialized)
+    return;
+  already_initialized = true;
+
+  CommandLine* command_line = CommandLine::ForCurrentProcess();
+
+#if defined(OS_TIZEN_MOBILE)
+  command_line->AppendSwitch(switches::kIgnoreGpuBlacklist);
+
+  const char* gl_name;
+  if (file_util::PathExists(base::FilePath("/usr/lib/xwalk/libosmesa.so")))
+    gl_name = gfx::kGLImplementationOSMesaName;
+  else if (file_util::PathExists(base::FilePath("/usr/lib/libGL.so")))
+    gl_name = gfx::kGLImplementationDesktopName;
+  else
+    gl_name = gfx::kGLImplementationEGLName;
+  command_line->AppendSwitchASCII(switches::kUseGL, gl_name);
+#endif
+
+  // Always use fixed layout and viewport tag.
+  command_line->AppendSwitch(switches::kEnableFixedLayout);
+  command_line->AppendSwitch(switches::kEnableViewport);
+
+  // Show feedback on touch.
+  command_line->AppendSwitch(switches::kEnableGestureTapHighlight);
+
+#if defined(OS_ANDROID)
+  // Enable WebGL on all platforms (disable on Android per defaults).
+  command_line->AppendSwitch(switches::kEnableExperimentalWebGL);
+#endif
+
+  // FIXME: Add comment why this is needed on Android and Tizen.
+  command_line->AppendSwitch(switches::kAllowFileAccessFromFiles);
+}
+
 XWalkBrowserMainParts::XWalkBrowserMainParts(
     const content::MainFunctionParams& parameters)
     : BrowserMainParts(),
@@ -80,44 +138,9 @@ void XWalkBrowserMainParts::SetRuntimeContext(RuntimeContext* context) {
 #endif
 
 void XWalkBrowserMainParts::PreMainMessageLoopStart() {
-#if defined(OS_ANDROID)
-  CommandLine::ForCurrentProcess()->AppendSwitch(
-      switches::kAllowFileAccessFromFiles);
-  // WebGL is disabled by default on Android, explicitly enable it in switches.
-  CommandLine::ForCurrentProcess()->AppendSwitch(
-      switches::kEnableExperimentalWebGL);
-#endif
+  SetContentCommandLineFlags();
 
-#if !defined(OS_ANDROID)
-  CommandLine* command_line = CommandLine::ForCurrentProcess();
-#if defined(OS_TIZEN_MOBILE)
-  command_line->AppendSwitch(switches::kAllowFileAccessFromFiles);
-  command_line->AppendSwitch(switches::kIgnoreGpuBlacklist);
-
-  const char* gl_name;
-  if (file_util::PathExists(base::FilePath("/usr/lib/xwalk/libosmesa.so")))
-    gl_name = gfx::kGLImplementationOSMesaName;
-  else if (file_util::PathExists(base::FilePath("/usr/lib/libGL.so")))
-    gl_name = gfx::kGLImplementationDesktopName;
-  else
-    gl_name = gfx::kGLImplementationEGLName;
-  command_line->AppendSwitchASCII(switches::kUseGL, gl_name);
-#endif
-  const CommandLine::StringVector& args = command_line->GetArgs();
-
-  if (args.empty())
-    return;
-
-  GURL url(args[0]);
-  if (url.is_valid() && url.has_scheme()) {
-    startup_url_ = url;
-  } else {
-    base::FilePath path(args[0]);
-    if (!path.IsAbsolute())
-      path = MakeAbsoluteFilePath(path);
-    startup_url_ = net::FilePathToFileURL(path);
-  }
-#endif
+  startup_url_ = GetContentLaunchURL();
 
 #if defined(OS_MACOSX)
     PreMainMessageLoopStartMac();
