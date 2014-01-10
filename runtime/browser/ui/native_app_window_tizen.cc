@@ -182,6 +182,27 @@ void NativeAppWindowTizen::OnRotationChanged(
     return;
 
   display_.set_rotation(rotation);
+  printf("We are being observed by %p (so extension is loaded.)\n", observer());
+
+  if (observer()) {
+    Orientation orientation;
+    switch (rotation) {
+      case gfx::Display::ROTATE_0:
+        orientation = PORTRAIT_PRIMARY;
+        break;
+      case gfx::Display::ROTATE_90:
+        orientation = LANDSCAPE_PRIMARY;
+        break;
+      case gfx::Display::ROTATE_180:
+        orientation = PORTRAIT_SECONDARY;
+        break;
+      case gfx::Display::ROTATE_270:
+        orientation = LANDSCAPE_SECONDARY;
+        break;
+    }
+    observer()->OnOrientationChanged(orientation);
+  }
+
   ApplyDisplayRotation();
 }
 
