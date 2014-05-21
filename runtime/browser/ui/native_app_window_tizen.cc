@@ -19,25 +19,28 @@ namespace {
 
 static gfx::Display::Rotation ToDisplayRotation(gfx::Display display,
     blink::WebScreenOrientationType orientation) {
-  gfx::Display::Rotation rot;
+  gfx::Display::Rotation rot = gfx::Display::ROTATE_0;
   switch (orientation) {
+    case blink::WebScreenOrientationUndefined:
     case blink::WebScreenOrientationPortraitPrimary:
       rot = gfx::Display::ROTATE_0;
       break;
     case blink::WebScreenOrientationLandscapeSecondary:
       rot = gfx::Display::ROTATE_90;
       break;
-    case blink::WebScreenOrientationPortraitSecondary;
+    case blink::WebScreenOrientationPortraitSecondary:
       rot = gfx::Display::ROTATE_180;
       break;
     case blink::WebScreenOrientationLandscapePrimary:
       rot = gfx::Display::ROTATE_270;
       break;
+  default:
+      NOTREACHED();
   }
 
   if (display.bounds().width() > display.bounds().height()) {
     // Landscape devices have landscape-primary as default.
-    rot = (rot - 1) % 4;
+    rot = static_cast<gfx::Display::Rotation>((rot - 1) % 4);
   }
 
   return rot;
@@ -191,13 +194,17 @@ blink::WebScreenOrientationType
       return blink::WebScreenOrientationLandscapePrimary;
     case blink::WebScreenOrientationLockLandscapeSecondary:
       return blink::WebScreenOrientationLandscapeSecondary;
+  default:
+      NOTREACHED();
   }
+  return orientation;
 }
 
 void NativeAppWindowTizen::LockOrientation(
       blink::WebScreenOrientationLockType lock) {
   orientation_lock_ = lock;
-  OnScreenOrientationChanged(orientation);
+  if (SensorProvider* sensor = SensorProvider::GetInstance())
+    OnScreenOrientationChanged(sensor->GetScreenOrientation());
 }
 
 void NativeAppWindowTizen::UnlockOrientation() {
@@ -206,16 +213,11 @@ void NativeAppWindowTizen::UnlockOrientation() {
 
 void NativeAppWindowTizen::OnScreenOrientationChanged(
     blink::WebScreenOrientationType orientation) {
-  SensorProvider* sensor = SensorProvider::GetInstance();
-  if (!sensor)
-    return;
-
-  blink::WebScreenOrientationType orientation =
-     FindNearestAllowedOrientation(sensor->GetScreenOrientation());
 
   // We always store the current sensor position, even if we do not
   // apply it in case the window is invisible.
-  gfx::Display::Rotation rot = ToDisplayRotation(display_, orientation);
+  gfx::Display::Rotation rot = ToDisplayRotation(display_,
+      FindNearestAllowedOrientation(orientation));
   if (display_.rotation() == rot)
     return;
 
@@ -228,7 +230,7 @@ void NativeAppWindowTizen::SetDisplayRotation(gfx::Display display) {
   if (!window->IsVisible())
     return;
 
-  SetWindowRotation(window, display.rotation());
+  SetWindowRotation(window, display);
 }
 
 }  // namespace xwalk

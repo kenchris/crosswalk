@@ -19,7 +19,7 @@ SensorProvider* SensorProvider::GetInstance() {
 }
 
 SensorProvider::SensorProvider()
-    : last_rotation_(gfx::Display::ROTATE_0) {
+    : last_orientation_(blink::WebScreenOrientationUndefined) {
 }
 
 SensorProvider::~SensorProvider() {
@@ -32,14 +32,6 @@ void SensorProvider::AddObserver(Observer* observer) {
 
 void SensorProvider::RemoveObserver(Observer* observer) {
   observers_.erase(observer);
-}
-
-void SensorProvider::OnRotationChanged(gfx::Display::Rotation rotation) {
-  last_rotation_ = rotation;
-
-  std::set<Observer*>::iterator it;
-  for (it = observers_.begin(); it != observers_.end(); ++it)
-    (*it)->OnRotationChanged(rotation);
 }
 
 void SensorProvider::OnOrientationChanged(float alpha,

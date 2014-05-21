@@ -20,8 +20,8 @@ int rotation_start = 0; // Default is portrait primary.
 int rotation_start = -1; // Default is landscape primary.
 #endif
 
-static blink::WebScreenOrientationType ToScreenOrientation(
-    int rotation) const {
+blink::WebScreenOrientationType ToScreenOrientation(
+    int rotation) {
   rotation = (rotation + rotation_start) % 4;
 
   blink::WebScreenOrientationType r = blink::WebScreenOrientationUndefined;
@@ -172,14 +172,14 @@ void TizenPlatformSensor::OnAutoRotationEnabledChanged(
     keynode_t* node, void* udata) {
   TizenPlatformSensor* self = reinterpret_cast<TizenPlatformSensor*>(udata);
 
-  sensor->auto_rotation_enabled_ = (vconf_keynode_get_bool(node) != 0);
+  self->auto_rotation_enabled_ = (vconf_keynode_get_bool(node) != 0);
 
   unsigned long value;  // NOLINT
   if (!self->auto_rotation_enabled_) {
     // Change orientation to initial platform orientation when disabled.
     self->OnScreenOrientationChanged(
-        ToScreenOrientation(ROTATION_EVENT_0);
-  } else if (sensor->auto_rotation_enabled_ && !sf_check_rotation(&value)) {
+        ToScreenOrientation(ROTATION_EVENT_0));
+  } else if (self->auto_rotation_enabled_ && !sf_check_rotation(&value)) {
     self->OnScreenOrientationChanged(
         ToScreenOrientation(static_cast<int>(value)));
   }

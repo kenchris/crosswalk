@@ -27,9 +27,8 @@ class NativeAppWindowTizen
   virtual ~NativeAppWindowTizen();
 
  private:
-  blink::WebScreenOrientationType
-    NativeAppWindowTizen::FindNearestAllowedOrientation(
-        blink::WebScreenOrientationType orientation) const;
+  blink::WebScreenOrientationType FindNearestAllowedOrientation(
+      blink::WebScreenOrientationType orientation) const;
 
   void SetDisplayRotation(gfx::Display);
 
@@ -70,7 +69,7 @@ class NativeAppWindowTizen
 #endif
 
   gfx::Display display_;
-  OrientationMask allowed_orientations_;
+  blink::WebScreenOrientationLockType orientation_lock_;
 
   DISALLOW_COPY_AND_ASSIGN(NativeAppWindowTizen);
 };

@@ -9,7 +9,7 @@
 
 #include "base/memory/scoped_ptr.h"
 #include "ui/gfx/display.h"
-#include "third_party/WebKit/public/platform/WebScreenOrientationLockType.h"
+#include "third_party/WebKit/public/platform/WebScreenOrientationType.h"
 
 namespace xwalk {
 
